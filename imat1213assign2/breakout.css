@@ -1,0 +1,63 @@
+html
+{
+	/*Background behind the body. */
+	background-color: blue;
+	background: -webkit-linear-gradient(left, black, blue, black); /* For Safari 5.1 to 6.0 */
+	background: -o-linear-gradient(right, black, blue, black); /* For Opera 11.1 to 12.0 */
+	background: -moz-linear-gradient(right, black, blue, black); /* For Firefox 3.6 to 15 */
+	background: linear-gradient(to right, black, blue, black); /* Standard syntax */
+	
+	height: 100%; /* Height of the html file goes to the bottom of the screen. */
+}
+
+body {
+  font-family: "Century Gothic"; /* Sets the font for all of the content. */
+  background-color: black; /* Sets the background for all of the content. */
+  color: white; /* Sets the font colour for all of the content. */
+  
+  /* Sets the border for all of the content. */
+  border-left: thick solid #ff0000;
+  border-right: thick solid #ff0000;
+  border-top: none;
+  border-bottom: none;
+  
+  max-width: 80%; /*Sets the width of the body to 80% of the browser window. */
+  min-height: 100%; /*Sets the height of the body to 100% of the browser window. */
+  
+  /*Changes the margin and padding so the content box reaches the top and bottom of the screen and is centred.*/
+  margin: 0px; 
+  margin-left: 10%;
+  padding: 5px;
+}
+
+main, header {
+  /*Sets the max width of the content within the body to 60% of the content box.*/
+  max-width: 60%;
+  margin: 0 auto;
+}
+
+header h1 {
+  /*Sets the header font size.*/
+  font-size: 6em;
+  margin: 0;
+}
+
+header {
+  background-image: url('breakout.png');
+  background-size: 100px;
+  height: 120px;
+  background-repeat: no-repeat;
+  background-position: right;
+}
+
+canvas#breakout {
+  background: #45484d; /* Old browsers */
+  background: radial-gradient(ellipse at center, #45484d 0%,#000000 100%); /* W3C */
+  border-radius: 10px;
+  border: 4px solid #d5282d;
+  width: 100%;
+}
+
+#ControlsTitle{
+	font-weight: bold;
+}
