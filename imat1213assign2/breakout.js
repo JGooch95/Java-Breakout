@@ -6,16 +6,19 @@ var keysDown = {};
 window.addEventListener("keydown",function(e){ keysDown[e.keyCode] = true; }); //Pressing a key down
 window.addEventListener("keyup",function(e){ delete keysDown[e.keyCode]; }); //Removing the key press of the key
 
-var Game = {
-	GameOver: false, //Determines whether the game is over and if the game over screen is open.
-	StartScreen: true, //Determines whether the start screen is open.
-	LevelScreen: false //Determines whether the level transfer screen is open.
+var Screens = {
+	StartScreen: 0,
+	GameOver:1,
+	LevelScreen:2,
+	Game: 3
 }
+
+var GameScreen = Screens.StartScreen;
 
 var Player = {
 	Lives: 3, //Lives the player currently has.
 	Score: 0, //Score the player currently has.
-	Level: 1,  //Level the player currently has.
+	Level: 1  //Level the player currently has.
 }
 
 var BlockGroup = {
@@ -269,7 +272,7 @@ function UpdateStartScreen()
 	//If the enter key is pressed.
 	if(13 in keysDown) 
 	{
-		Game.StartScreen = false; //The start screen is disabled.
+		//Game.StartScreen = false; //The start screen is disabled.
 		BlockGroup.BlocksDestroyed = 0; //Blocks destroyed are reset.
 		Player.Lives = 3; //Lives are reset
 		Player.Score = 0; //Score is reset
@@ -279,7 +282,8 @@ function UpdateStartScreen()
 		paddle.x = (canvas.width / 2) - (paddle.width / 2); //The paddle's position is reset.
 		ResetBlocks(); //The blocks are reset.
 		delete keysDown[13]; //Removes the enter key from the stack.
-		Game.LevelScreen = true; //The Level screen is enabled.
+		GameScreen = Screens.LevelScreen;
+		//Game.LevelScreen = true; //The Level screen is enabled.
 	}
 }
 
@@ -288,15 +292,16 @@ function UpdateGameOver()
 	//If the enter key is pressed.
 	if(13 in keysDown)
 	{
-		Game.GameOver = false; //The Game Over screen is disabled.
-		Game.StartScreen = true; //The start screen is enabled.
+		//Game.GameOver = false; //The Game Over screen is disabled.
+		//Game.StartScreen = true; //The start screen is enabled.
+		GameScreen = Screens.StartScreen;
 		delete keysDown[13]; //Removes the enter key from the stack.
 	}
 }
 
 function UpdateLevelScreen()
 {
-	var timer = setTimeout(function DisableLevelScreen(){Game.LevelScreen = false;}, 2000); //Disables the level transfer screen after 2 seconds.
+	var timer = setTimeout(function DisableLevelScreen(){GameScreen = Screens.Game;}, 2000); //Disables the level transfer screen after 2 seconds.
 }
 
 function UpdateInGame(elapsed)
@@ -304,7 +309,7 @@ function UpdateInGame(elapsed)
 	//If the player dies
 	if (Player.Lives <= 0)
 	{
-		Game.GameOver = true; //The Game Over screen is enabled
+		GameScreen = Screens.GameOver; //The Game Over screen is enabled
 		return; //The game screen is left
 	}
 	
@@ -612,7 +617,7 @@ function UpdateInGame(elapsed)
 	{
 		Player.Level += 1; //The level is increased.
 
-		Game.LevelScreen = true; //The level transfer screen is enabled.
+		GameScreen = Screens.LevelScreen;
 		BlockGroup.BlocksDestroyed = 0; //The amount of blocks destroyed is reset.
 
 		//The ball's position is reset.
@@ -666,57 +671,54 @@ function UpdateInGame(elapsed)
 
 function render() 
 {	
-	//If the start screen is the current screen.
-	if(Game.StartScreen == true)
+	switch(GameScreen)
 	{
-		RenderStartScreen();
-	}
-	
-	//If the Game over screen is the current screen.
-	else if (Game.GameOver == true)
-	{
-		RenderGameOver();
-	}
-	
-	//If the Level transfer screen is the current screen.
-	else if (Game.LevelScreen == true)
-	{
-		RenderLevelScreen();
-	}
-	
-	//If the Game screen is the current screen.
-	else
-	{
-		RenderInGame();
-	}
+		case Screens.StartScreen:
+			RenderStartScreen();
+			break;
+
+		case Screens.GameOver:
+			RenderGameOver();
+			break;
+
+		case Screens.LevelScreen:
+			RenderLevelScreen();
+			break;
+
+		case Screens.Game:
+			RenderInGame();
+			break;
+
+		default:
+			GameScreen = Screens.StartScreen;
+			//break;
+	};
 }
 
 function update(elapsed) 
 {
-	//If the start screen is the current screen.
-	if (Game.StartScreen == true)
+	switch(GameScreen)
 	{
-		UpdateStartScreen();
-	}
-	
-	//If the Game over screen is the current screen.
-	else if (Game.GameOver == true)
-	{
-		UpdateGameOver();
-	}
-	
-	//If the Level transfer screen is the current screen.
-	else if (Game.LevelScreen == true) 
-	{
-		UpdateLevelScreen();
-	}
-	
-	
-	//If the Game screen is the current screen.
-	else
-	{
-		UpdateInGame(elapsed);
-	}
+		case Screens.StartScreen:
+			UpdateStartScreen();
+			break;
+
+		case Screens.GameOver:
+			UpdateGameOver();
+			break;
+
+		case Screens.LevelScreen:
+			UpdateLevelScreen();
+			break;
+
+		case Screens.Game:
+			UpdateInGame(elapsed);
+			break;
+
+		default:
+			GameScreen = Screens.StartScreen;
+			//break;
+	};
 }
 
 var previous;
