@@ -13,12 +13,14 @@ var Screens = {
 	Game: 3
 }
 
-var GameScreen = Screens.StartScreen;
+var Game = {
+	Screen: Screens.StartScreen, //Current Displayed Screen
+	Level: 1 //Current level
+}
 
 var Player = {
 	Lives: 3, //Lives the player currently has.
-	Score: 0, //Score the player currently has.
-	Level: 1  //Level the player currently has.
+	Score: 0 //Score the player currently has.
 }
 
 var BlockGroup = {
@@ -30,8 +32,9 @@ var BlockGroup = {
 var ball = {
 	x: canvas.width / 2,   //X coordinate in pixels
 	y: canvas.height - 80, //Y coordinate in pixels
-	xSpeed: 200,   		 //Speed in the x direction in pixels per second
-	ySpeed: -200,          //Speed in the y direction in pixels per second
+	speed: 200,   		 //Speed in the x direction in pixels per second
+	xDir: 1,
+	yDir: 1,
 	radius: 10,            //Radius of the ball in pixels
 	released: false,		 //Determines whether the ball has started moving.
 	collision: false		 //Determines whether the ball has collided.
@@ -70,7 +73,7 @@ function ResetBlocks()
 	BlockGroup.AmountOfBlocks = 0; //Resets the amount of blocks variable.
 	
 	//Block Positions change dependant on the level.
-	switch(Player.Level)
+	switch(Game.Level)
 	{
 		case 1:
 			LevelBlocks = ["========",
@@ -184,7 +187,7 @@ function RenderLevelScreen()
 	ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear the canvas
 	
 	//Draws the Level to the screen.
-	Level_txt = "Level: " + Player.Level;
+	Level_txt = "Level: " + Game.Level;
 	ctx.fillText(Level_txt, (canvas.width / 2) - (ctx.measureText(Level_txt).width / 2) ,canvas.height / 2);
 }
 
@@ -251,7 +254,7 @@ function RenderInGame()
 	ctx.fillText(HUD_txt,100 ,canvas.height - 10);
 
 	//Level
-	HUD_txt = "Level " + Player.Level;
+	HUD_txt = "Level " + Game.Level;
 	ctx.fillText(HUD_txt, (canvas.width / 2) - (ctx.measureText(HUD_txt).width / 2) ,canvas.height - 10);
 	
 	//If the ball hasn't been released.
@@ -276,13 +279,12 @@ function UpdateStartScreen()
 		BlockGroup.BlocksDestroyed = 0; //Blocks destroyed are reset.
 		Player.Lives = 3; //Lives are reset
 		Player.Score = 0; //Score is reset
-		Player.Level = 1; //The level is reset.
-		ball.xSpeed = 200; //Ball xSpeed is reset.
-		ball.ySpeed = -200; //Ball ySpeed is reset.
+		Game.Level = 1; //The level is reset.
+		ball.speed = 200; //Ball xSpeed is reset.
 		paddle.x = (canvas.width / 2) - (paddle.width / 2); //The paddle's position is reset.
 		ResetBlocks(); //The blocks are reset.
 		delete keysDown[13]; //Removes the enter key from the stack.
-		GameScreen = Screens.LevelScreen;
+		Game.Screen = Screens.LevelScreen;
 		//Game.LevelScreen = true; //The Level screen is enabled.
 	}
 }
@@ -294,14 +296,99 @@ function UpdateGameOver()
 	{
 		//Game.GameOver = false; //The Game Over screen is disabled.
 		//Game.StartScreen = true; //The start screen is enabled.
-		GameScreen = Screens.StartScreen;
+		Game.Screen = Screens.StartScreen;
 		delete keysDown[13]; //Removes the enter key from the stack.
 	}
 }
 
 function UpdateLevelScreen()
 {
-	var timer = setTimeout(function DisableLevelScreen(){GameScreen = Screens.Game;}, 2000); //Disables the level transfer screen after 2 seconds.
+	var timer = setTimeout(function DisableLevelScreen(){Game.Screen = Screens.Game;}, 2000); //Disables the level transfer screen after 2 seconds.
+}
+
+function Magnitude(vector)
+{
+	var mag = 0;
+	for(var i = 0; i < vector.length; ++i)
+	{
+		mag += Math.pow(vector[i],2);
+	}
+
+	return(Math.sqrt(mag));
+
+}
+function Collision(box, circle)
+{
+	//Box box collision
+	if(circle.x + circle.radius >= box.x && 
+	   circle.x - circle.radius <= box.x + box.width && 
+	   circle.y + circle.radius >= box.y && 
+	   circle.y - circle.radius <= box.y + box.height)
+	{
+		//Difference between 2 centers
+		var diff = [ circle.x - (box.x + box.width/2) ,  circle.y - (box.y + box.height/2)];
+		var clamp = [0,0];
+		var flip = [0,0];
+
+		//If the clamps the location of the circle to the rect
+		if(diff[0] >= 0)
+		{
+			clamp[0] = Math.min(diff[0], (box.width/2));
+		}
+		else
+		{
+			clamp[0] = Math.max(diff[0], -(box.width/2));
+		}
+
+		if(diff[1] >= 0)
+		{
+			clamp[1] = Math.min(diff[1], (box.height/2));
+		}
+		else
+		{
+			clamp[1] = Math.max(diff[1], -(box.height/2));
+		}
+
+		//Caclulates the distance between the objects
+		var dist = [diff[0] - clamp[0], diff[1] - clamp[1]];
+
+		var difference = Magnitude(dist) - circle.radius;
+
+		//If colliding
+		if(difference <= 0)
+		{
+			//Position the circle
+			var unitClamp = [clamp[0]/ Magnitude(clamp), clamp[1]/ Magnitude(clamp)]
+			unitClamp[0] *= circle.radius;
+			unitClamp[1] *= circle.radius;
+
+			circle.x = box.x + (box.width/2) + clamp[0] + unitClamp[0];
+			circle.y = box.y + (box.height/2) + clamp[1] + unitClamp[1];
+
+			if(circle.y >= box.y + box.height)
+			{
+				circle.yDir = 1;
+			}
+			else if(circle.y <= box.y)
+			{
+				circle.yDir = -1;
+			}
+
+			if(circle.x >= box.x + box.width)
+			{
+				circle.xDir = 1;
+			}
+			else if(circle.x <= box.x)
+			{
+				circle.xDir = -1;
+			}
+
+			circle.collision = true;
+
+			return true;
+		}
+	}
+	return false;
 }
 
 function UpdateInGame(elapsed)
@@ -309,7 +396,7 @@ function UpdateInGame(elapsed)
 	//If the player dies
 	if (Player.Lives <= 0)
 	{
-		GameScreen = Screens.GameOver; //The Game Over screen is enabled
+		Game.Screen = Screens.GameOver; //The Game Over screen is enabled
 		return; //The game screen is left
 	}
 	
@@ -317,8 +404,8 @@ function UpdateInGame(elapsed)
 	if(ball.released == true)
 	{
 		//update the ball position according to the elapsed time
-		ball.y += ball.ySpeed * elapsed;
-		ball.x += ball.xSpeed * elapsed;
+		ball.y += ball.yDir * ball.speed * elapsed;
+		ball.x += ball.xDir * ball.speed * elapsed;
 
 		//Key detection
 		//If the left key is pressed the paddle moves left.
@@ -357,93 +444,28 @@ function UpdateInGame(elapsed)
 	var yPaddleHit = "none";
 	var xPaddleHit = "none";
 	
-	//If the ball enters the paddle area.
-	if(ball.x + ball.radius >= paddle.x && 
-	ball.x - ball.radius <= paddle.x + paddle.width && 
-	ball.y + ball.radius >= paddle.y && 
-	ball.y - ball.radius <= paddle.y + paddle.height)
-	{
-		//If the ball is within the top area of the paddle and is moving downwards.
-		if(ball.x + ball.radius >= paddle.x + (paddle.x + paddle.height / 2) && 
-		ball.x - ball.radius <= paddle.x + paddle.width - (paddle.x + paddle.height / 2)&& 
-		ball.y + ball.radius >= paddle.y  && 
-		ball.y - ball.radius <= paddle.y + paddle.height &&
-		ball.ySpeed > 0 ||
-		ball.y + ball .radius >= paddle.y &&
-		ball.y + ball.radius <= paddle.y + (paddle.height / 4) &&
-		ball.x + ball.radius >= paddle.x &&
-		ball.x - ball.radius <= paddle.x + paddle.width && 
-		ball.ySpeed > 0 )
-		{
-			yPaddleHit = "top"; //The paddle has been hit on the top.
-			ball.ySpeed *= -1;  //The ball is flipped in the y direction.
-		}
-		
-		//If the ball is within the bottom area of the paddle and is moving upwards.
-		else if( ball.x + ball.radius >= paddle.x + (paddle.x + paddle.height / 2) && 
-		ball.x - ball.radius <= paddle.x + paddle.width - (paddle.x + paddle.height / 2)&& 
-		ball.y + ball.radius >= paddle.y  && 
-		ball.y - ball.radius <= paddle.y + paddle.height &&	
-		ball.ySpeed < 0 ||
-		ball.y - ball .radius >= paddle.y &&
-		ball.y - ball.radius <= paddle.y + paddle.height - (paddle.height / 4) &&
-		ball.x + ball.radius >= paddle.x &&
-		ball.x - ball.radius <= paddle.x + paddle.width &&
-		ball.ySpeed < 0)
-		{
-			yPaddleHit = "bottom"; //The paddle has been hit on the bottom.
-			ball.ySpeed *= -1;     //The ball is flipped in the y direction.
-		}
-		
-		//If the ball is within the left area of the paddle and is moving right.
-		if(ball.x + ball.radius >= paddle.x &&
-		ball.x + ball.radius <= paddle.x + (paddle.height/2) &&
-		ball.y + ball.radius >= paddle.y &&
-		ball.y - ball.radius <= paddle.y + paddle.height &&
-		ball.xSpeed > 0)
-		{
-			xPaddleHit = "left"; //The paddle has been hit on the left side.
-			ball.xSpeed *= -1;   //The ball is flipped in the x direction.
-		}
-		
-		//If the ball is within the right area of the paddle and is moving left.
-		else if(ball.x - ball.radius >= paddle.x + paddle.width - (paddle.height/2)  &&
-		ball.x - ball.radius <= paddle.x + paddle.width &&
-		ball.y + ball.radius >= paddle.y &&
-		ball.y - ball.radius <= paddle.y + paddle.height && 
-		ball.xSpeed < 0)
-		{
-			xPaddleHit = "right"; //The paddle has been hit on the right side.
-			ball.xSpeed *= -1;    //The ball is flipped in the x direction.
-		}
-		
-		//If the paddle has been hit in any direction.
-		if (xPaddleHit != "none" || yPaddleHit != "none")
-		{
-			//If the left side of the paddle has been hit.
-			if (xPaddleHit == "left")
-			{	
-				ball.x = paddle.x - ball.radius; //The ball moves to the left side of the paddle.
-			}
-			//If the right side of the paddle has been hit.
-			else if (xPaddleHit == "right")
-			{
-				ball.x = paddle.x + paddle.width + ball.radius; //The ball moves to the right side of the paddle.
-			}
-			
-			//If the top of the paddle has been hit.
-			if (yPaddleHit == "top")
-			{
-				ball.y = paddle.y - ball.radius; //The ball moves to the top of the paddle.
-			}
-			//If the bottom of the paddle has been hit.
-			else if (yPaddleHit == "bottom")
-			{
-				ball.y = paddle.y + paddle.height + ball.radius; //The ball moves to the bottom of the paddle.
-			}
-		}
+	Collision(paddle, ball);
 
-		ball.collision = true; //The ball has collided.
+	for(b = 0; b < BlockGroup.Rows.length; b++)
+	{
+		//For each block in the row.
+		for(i=0; i < BlockGroup.Rows[b].length; i++)
+		{
+			if(Collision(BlockGroup.Rows[b][i], ball))
+			{
+				Player.Score += 100 * Game.Level; // Score increases dependant on the level.
+				BlockGroup.Rows[b][i].hits -= 1;
+						
+				//If the block has taken all of its hits.
+				if (BlockGroup.Rows[b][i].hits <= 0)
+				{
+					BlockGroup.Rows[b].splice(i,1); 	// The block is removed from the list of blocks.
+					BlockGroup.BlocksDestroyed += 1; 	// The blocks destroyed is increased by 1.
+				}
+						
+				ball.collision = true; 				// The collision variable is set to true
+			}
+		}
 	}
 
 	//Collision (Ball : Window edges)
@@ -462,7 +484,7 @@ function UpdateInGame(elapsed)
 			ball.x = canvas.width - ball.radius; //Ball is moved to the right side of the screen.
 		}
 
-		ball.xSpeed *= -1;      //Ball's direction on the x axis is flipped.
+		ball.xDir *= -1;      //Ball's direction on the x axis is flipped.
 		ball.collision = true;  //Collision variable is set to true.
 	}
 
@@ -486,138 +508,27 @@ function UpdateInGame(elapsed)
 			Player.Lives -= 1;  //Player lives are decreased.
 			
 			//If the ball's direction is down
-			if (ball.ySpeed < 0)
+			if (ball.yDir < 0)
 			{
-				ball.ySpeed *= -1; //The ball's direction in the y axis is flipped.
+				ball.yDir *= -1; //The ball's direction in the y axis is flipped.
 			}
 			
 			ball.released = false; //The ball is set to not released.
 			paddle.x = (canvas.width / 2) - (paddle.width / 2); //Paddle's position is reset.
 		}
 
-		ball.ySpeed *= -1; 	   //Ball's direction on the y axis is flipped.
+		ball.yDir *= -1; 	   //Ball's direction on the y axis is flipped.
 		ball.collision = true; //Collision variable is set to true.
 	}
 
-	//Collision(Ball : Blocks)
-	var yBlockHit = "none";
-	var xBlockHit = "none";
 	
-	//For each row of blocks.
-	for(b = 0; b < BlockGroup.Rows.length; b++)
-	{
-		//For each block in the row.
-		for(i=0; i < BlockGroup.Rows[b].length; i++)
-		{
-			//If the ball is within the area of the block.
-			if(ball.x + ball.radius >= BlockGroup.Rows[b][i].x && 
-			ball.x - ball.radius <= BlockGroup.Rows[b][i].x + BlockGroup.Rows[b][i].width && 
-			ball.y + ball.radius >= BlockGroup.Rows[b][i].y && 
-			ball.y - ball.radius <= BlockGroup.Rows[b][i].y + BlockGroup.Rows[b][i].height)
-			{
-				//If the ball is within the top area of the block and is moving downwards.
-				if(ball.x + ball.radius >=  BlockGroup.Rows[b][i].x + (BlockGroup.Rows[b][i].width / 4) && 
-				ball.x - ball.radius <= BlockGroup.Rows[b][i].x + BlockGroup.Rows[b][i].width - (BlockGroup.Rows[b][i].width / 4)&& 
-				ball.y + ball.radius >= BlockGroup.Rows[b][i].y  && 
-				ball.y - ball.radius <= BlockGroup.Rows[b][i].y + BlockGroup.Rows[b][i].height &&
-				ball.ySpeed > 0 ||
-				ball.y + ball .radius >= BlockGroup.Rows[b][i].y &&
-				ball.y + ball.radius <= BlockGroup.Rows[b][i].y + (BlockGroup.Rows[b][i].height / 4) &&
-				ball.x + ball.radius >= BlockGroup.Rows[b][i].x &&
-				ball.x - ball.radius <= BlockGroup.Rows[b][i].x + BlockGroup.Rows[b][i].width && 
-				ball.ySpeed > 0 )
-				{
-					yBlockHit = "top"; //The block has been hit on the top.
-					ball.ySpeed *= -1; //The ball's direction is flipped on the y axis.
-				}
-				
-				//If the ball is within the bottom area of the block and is moving upwards.
-				else if( ball.x + ball.radius >= BlockGroup.Rows[b][i].x + (BlockGroup.Rows[b][i].width / 4) && 
-				ball.x - ball.radius <= BlockGroup.Rows[b][i].x + BlockGroup.Rows[b][i].width - (BlockGroup.Rows[b][i].width / 4)&& 
-				ball.y + ball.radius >= BlockGroup.Rows[b][i].y  && 
-				ball.y - ball.radius <= BlockGroup.Rows[b][i].y + BlockGroup.Rows[b][i].height &&	
-				ball.ySpeed < 0 ||
-				ball.y - ball .radius >= BlockGroup.Rows[b][i].y + BlockGroup.Rows[b][i].height - (BlockGroup.Rows[b][i].height / 4) &&
-				ball.y - ball.radius <= BlockGroup.Rows[b][i].y + BlockGroup.Rows[b][i].height  &&
-				ball.x + ball.radius >= BlockGroup.Rows[b][i].x &&
-				ball.x - ball.radius <= BlockGroup.Rows[b][i].x + BlockGroup.Rows[b][i].width &&
-				ball.ySpeed < 0)
-				{
-					yBlockHit = "bottom"; //The block has been hit on the bottom.
-					ball.ySpeed *= -1; //The ball's direction is flipped on the y axis.
-				}
-				
-				//If the ball is within the left area of the block and is moving right.
-				if(ball.x + ball.radius >= BlockGroup.Rows[b][i].x &&
-				ball.x + ball.radius <= BlockGroup.Rows[b][i].x + (BlockGroup.Rows[b][i].width/4) &&
-				ball.y + ball.radius >= BlockGroup.Rows[b][i].y &&
-				ball.y - ball.radius <= BlockGroup.Rows[b][i].y + BlockGroup.Rows[b][i].height &&
-				ball.xSpeed > 0)
-				{
-					xBlockHit = "left"; //The block has been hit on the left side.
-					ball.xSpeed *= -1; //The ball's direction is flipped on the x axis.
-				}
-				
-				//If the ball is within the right area of the block and is moving left.
-				else if(ball.x - ball.radius >= BlockGroup.Rows[b][i].x + BlockGroup.Rows[b][i].width - (BlockGroup.Rows[b][i].height/4)  &&
-				ball.x - ball.radius <= BlockGroup.Rows[b][i].x + BlockGroup.Rows[b][i].width &&
-				ball.y + ball.radius >= BlockGroup.Rows[b][i].y &&
-				ball.y - ball.radius <= BlockGroup.Rows[b][i].y + BlockGroup.Rows[b][i].height && 
-				ball.xSpeed < 0)
-				{
-					xBlockHit = "right"; //The block has been hit on the right side.
-					ball.xSpeed *= -1; //The ball's direction is flipped on the x axis.
-				}
-				
-				//If the block has been hit on any side.
-				if (xBlockHit != "none" || yBlockHit != "none")
-				{
-					//X
-					//If the block has been hit on the left side.
-					if (xBlockHit == "left")
-					{
-						ball.x = BlockGroup.Rows[b][i].x - ball.radius; //The ball is moved to the left side of the block
-					}
-					//If the block has been hit on the right side.
-					else if (xBlockHit == "right")
-					{
-						ball.x = BlockGroup.Rows[b][i].x + BlockGroup.Rows[b][i].width + ball.radius; //The ball is moved to the right side of the block
-					}
-					
-					//Y
-					//If the block has been hit on the top.
-					if (yBlockHit == "top")
-					{
-						ball.y = BlockGroup.Rows[b][i].y - ball.radius; //The ball is moved to the top of the block
-					}
-					//If the block has been hit on the bottom.
-					else if (yBlockHit == "bottom")
-					{
-						ball.y = BlockGroup.Rows[b][i].y + BlockGroup.Rows[b][i].height + ball.radius; //The ball is moved to the bottom of the block
-					}
-				}
-
-				Player.Score += 100 * Player.Level; // Score increases dependant on the level.
-				BlockGroup.Rows[b][i].hits -= 1;
-				
-				//If the block has taken all of its hits.
-				if (BlockGroup.Rows[b][i].hits <= 0)
-				{
-					BlockGroup.Rows[b].splice(i,1); 	// The block is removed from the list of blocks.
-					BlockGroup.BlocksDestroyed += 1; 	// The blocks destroyed is increased by 1.
-				}
-				
-				ball.collision = true; 				// The collision variable is set to true
-			}
-		}
-	}
-
+	
 	//If the amount of blocks destroyed is more than or equal to all the blocks on the canvas.
 	if (BlockGroup.BlocksDestroyed >= BlockGroup.AmountOfBlocks)
 	{
-		Player.Level += 1; //The level is increased.
+		Game.Level += 1; //The level is increased.
 
-		GameScreen = Screens.LevelScreen;
+		Game.Screen = Screens.LevelScreen;
 		BlockGroup.BlocksDestroyed = 0; //The amount of blocks destroyed is reset.
 
 		//The ball's position is reset.
@@ -625,9 +536,9 @@ function UpdateInGame(elapsed)
 		ball.x = canvas.width / 2;
 		
 		//If the ball's direction is down
-		if (ball.ySpeed < 0)
+		if (ball.yDir < 0)
 		{
-			ball.ySpeed *= -1; //The ball's direction in the y axis is flipped.
+			ball.yDir *= -1; //The ball's direction in the y axis is flipped.
 		}
 
 		paddle.x = (canvas.width / 2) - (paddle.width / 2); //The paddle's position is reset.
@@ -639,31 +550,7 @@ function UpdateInGame(elapsed)
 	//If the ball has collided.
 	if(ball.collision == true)
 	{
-		//Speed increases dependant on the direction of the ball's movement.
-		//X
-		//Left
-		if (ball.xSpeed > 0)
-		{
-			ball.xSpeed += 1;
-		}
-		//Right
-		else if(ball.xSpeed < 0)
-		{
-			ball.xSpeed -= 1;
-		}
-		
-		//Y
-		//Down
-		if (ball.ySpeed > 0)
-		{
-			ball.ySpeed += 1;
-		}
-		//Up
-		else if(ball.ySpeed < 0)
-		{
-			ball.ySpeed -= 1;
-		}
-		
+		ball.speed += 1; //Ball's speed is increased
 		paddle.speed += 1; //The paddle speed is increased.
 		ball.collision = false; //The ball's collision is reset.
 	}
@@ -671,7 +558,7 @@ function UpdateInGame(elapsed)
 
 function render() 
 {	
-	switch(GameScreen)
+	switch(Game.Screen)
 	{
 		case Screens.StartScreen:
 			RenderStartScreen();
@@ -690,14 +577,13 @@ function render()
 			break;
 
 		default:
-			GameScreen = Screens.StartScreen;
-			//break;
+			Game.Screen = Screens.StartScreen;
 	};
 }
 
 function update(elapsed) 
 {
-	switch(GameScreen)
+	switch(Game.Screen)
 	{
 		case Screens.StartScreen:
 			UpdateStartScreen();
@@ -716,8 +602,7 @@ function update(elapsed)
 			break;
 
 		default:
-			GameScreen = Screens.StartScreen;
-			//break;
+			Game.Screen = Screens.StartScreen;
 	};
 }
 
