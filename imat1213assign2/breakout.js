@@ -107,12 +107,12 @@ function ResetBlocks()
 	};
 
 	//For the amount of rows needed.
-	for(b = 0; b < LevelBlocks.length; b++)
+	for(b = 0; b < LevelBlocks.length; ++b)
 	{
 		var Row = []; //Empties the single row array.
 
 		//For each block in a row.
-		for(i = 0; i < LevelBlocks[b].length; i++)
+		for(i = 0; i < LevelBlocks[b].length; ++i)
 		{
 			//Single hit blocks
 			if(LevelBlocks[b][i] == "-")
@@ -215,10 +215,10 @@ function RenderInGame()
 
 	//Blocks
 	//For each row of blocks
-	for(b = 0; b < BlockGroup.Rows.length; b++)
+	for(b = 0; b < BlockGroup.Rows.length; ++b)
 	{
 		//For each block in the row.
-		for(i=0; i < BlockGroup.Rows[b].length; i++)
+		for(i=0; i < BlockGroup.Rows[b].length; ++i)
 		{
 			//1 hit blocks are red.
 			if(BlockGroup.Rows[b][i].hits == 1)
@@ -429,10 +429,10 @@ function UpdateInGame(elapsed)
 
 	BoxCircleCollision(paddle, ball);
 
-	for(b = 0; b < BlockGroup.Rows.length; b++)
+	for(b = 0; b < BlockGroup.Rows.length; ++b)
 	{
 		//For each block in the row.
-		for(i=0; i < BlockGroup.Rows[b].length; i++)
+		for(i=0; i < BlockGroup.Rows[b].length; ++i)
 		{
 			if(BoxCircleCollision(BlockGroup.Rows[b][i], ball))
 			{
