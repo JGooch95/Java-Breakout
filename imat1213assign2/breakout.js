@@ -6,6 +6,12 @@ var keysDown = {};
 window.addEventListener("keydown",function(e){ keysDown[e.keyCode] = true; }); //Pressing a key down
 window.addEventListener("keyup",function(e){ delete keysDown[e.keyCode]; }); //Removing the key press of the key
 
+function vec2f(x,y)
+{
+	this.x = x;
+	this.y = y;
+}
+
 var Screens = {
 	StartScreen: 0,
 	GameOver:1,
@@ -30,30 +36,24 @@ var BlockGroup = {
 }
 
 var ball = {
-	x: canvas.width / 2,   //X coordinate in pixels
-	y: canvas.height - 80, //Y coordinate in pixels
+	position: new vec2f(canvas.width / 2, canvas.height - 80),
+	direction: new vec2f(1,1),
 	speed: 200,   		 //Speed in the x direction in pixels per second
-	xDir: 1,
-	yDir: 1,
 	radius: 10,            //Radius of the ball in pixels
 	released: false,		 //Determines whether the ball has started moving.
 	collision: false		 //Determines whether the ball has collided.
 }
 
 var paddle = {
-	width: 100,            //Width of the paddle in pixels
-	height: 20,            //Height of the paddle in pixels
-	x: (canvas.width / 2) - (this.width / 2),   //X coordinate in pixels
-	y: canvas.height - 50, //Y coordinate in pixels
+	size: new vec2f(100,20),
+	position: new vec2f((canvas.width / 2) - (this.width / 2), canvas.height - 50),
 	speed: 800             //Speed of the paddle in pixels per second
 }
 
 function block(x, y, width, height, hits) 
 {
-	this.x = x,           //X coordinate of the block in pixels
-	this.y = y,           //Y coordinate of the block in pixels
-	this.width = width,   //Width of the block in pixels
-	this.height = height,  //Height of the block in pixels
+	this.position = new vec2f(x,y),
+	this.size = new vec2f(width, height),
 	this.colour = "white",  //Colour of the block
 	this.hits = hits	   //The amount of hits until the block is destroyed.
 }
@@ -203,14 +203,14 @@ function RenderInGame()
 
 	//Ball
 	ctx.beginPath();
-	ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+	ctx.arc(ball.position.x, ball.position.y, ball.radius, 0, Math.PI * 2);
 	ctx.fill();
 
 	//Paddle
 	ctx.beginPath();
-	ctx.fillRect(paddle.x + (paddle.height/2), paddle.y, paddle.width - paddle.height, paddle.height);
-	ctx.arc(paddle.x + (paddle.height / 2), paddle.y + (paddle.height / 2), paddle.height / 2, 0.5 * Math.PI, 1.5 * Math.PI);
-	ctx.arc(paddle.x + (paddle.height / 2) + paddle.width - paddle.height, paddle.y + (paddle.height / 2), paddle.height / 2, 1.5 * Math.PI, 0.5 * Math.PI);
+	ctx.fillRect(paddle.position.x + (paddle.size.y/2), paddle.position.y, paddle.size.x - paddle.size.y, paddle.size.y);
+	ctx.arc(paddle.position.x + (paddle.size.y / 2), paddle.position.y + (paddle.size.y / 2), paddle.size.y / 2, 0.5 * Math.PI, 1.5 * Math.PI);
+	ctx.arc(paddle.position.x + (paddle.size.y / 2) + paddle.size.x - paddle.size.y, paddle.position.y + (paddle.size.y / 2), paddle.size.y / 2, 1.5 * Math.PI, 0.5 * Math.PI);
 	ctx.fill();
 
 	//Blocks
@@ -235,7 +235,7 @@ function RenderInGame()
 			ctx.fillStyle = BlockGroup.Rows[b][i].colour;
 			
 			ctx.beginPath();
-			ctx.fillRect(BlockGroup.Rows[b][i].x, BlockGroup.Rows[b][i].y, BlockGroup.Rows[b][i].width, BlockGroup.Rows[b][i].height);
+			ctx.fillRect(BlockGroup.Rows[b][i].position.x, BlockGroup.Rows[b][i].position.y, BlockGroup.Rows[b][i].size.x, BlockGroup.Rows[b][i].size.y);
 			ctx.fill();
 		}
 	}
@@ -281,7 +281,7 @@ function UpdateStartScreen()
 		Player.Score = 0; //Score is reset
 		Game.Level = 1; //The level is reset.
 		ball.speed = 200; //Ball xSpeed is reset.
-		paddle.x = (canvas.width / 2) - (paddle.width / 2); //The paddle's position is reset.
+		paddle.position.x = (canvas.width / 2) - (paddle.size.x / 2); //The paddle's position is reset.
 		ResetBlocks(); //The blocks are reset.
 		delete keysDown[13]; //Removes the enter key from the stack.
 		Game.Screen = Screens.LevelScreen;
@@ -317,36 +317,37 @@ function Magnitude(vector)
 	return(Math.sqrt(mag));
 
 }
-function Collision(box, circle)
+
+function BoxCircleCollision(box, circle)
 {
 	//Box box collision
-	if(circle.x + circle.radius >= box.x && 
-	   circle.x - circle.radius <= box.x + box.width && 
-	   circle.y + circle.radius >= box.y && 
-	   circle.y - circle.radius <= box.y + box.height)
+	if(circle.position.x + circle.radius >= box.position.x && 
+	   circle.position.x - circle.radius <= box.position.x + box.size.x && 
+	   circle.position.y + circle.radius >= box.position.y && 
+	   circle.position.y - circle.radius <= box.position.y + box.size.y)
 	{
 		//Difference between 2 centers
-		var diff = [ circle.x - (box.x + box.width/2) ,  circle.y - (box.y + box.height/2)];
+		var diff = [ circle.position.x - (box.position.x + box.size.x/2) ,  circle.position.y - (box.position.y + box.size.y/2)];
 		var clamp = [0,0];
 		var flip = [0,0];
 
 		//If the clamps the location of the circle to the rect
 		if(diff[0] >= 0)
 		{
-			clamp[0] = Math.min(diff[0], (box.width/2));
+			clamp[0] = Math.min(diff[0], (box.size.x/2));
 		}
 		else
 		{
-			clamp[0] = Math.max(diff[0], -(box.width/2));
+			clamp[0] = Math.max(diff[0], -(box.size.x/2));
 		}
 
 		if(diff[1] >= 0)
 		{
-			clamp[1] = Math.min(diff[1], (box.height/2));
+			clamp[1] = Math.min(diff[1], (box.size.y/2));
 		}
 		else
 		{
-			clamp[1] = Math.max(diff[1], -(box.height/2));
+			clamp[1] = Math.max(diff[1], -(box.size.y/2));
 		}
 
 		//Caclulates the distance between the objects
@@ -362,25 +363,25 @@ function Collision(box, circle)
 			unitClamp[0] *= circle.radius;
 			unitClamp[1] *= circle.radius;
 
-			circle.x = box.x + (box.width/2) + clamp[0] + unitClamp[0];
-			circle.y = box.y + (box.height/2) + clamp[1] + unitClamp[1];
+			circle.position.x = box.position.x + (box.size.x/2) + clamp[0] + unitClamp[0];
+			circle.position.y = box.position.y + (box.size.y/2) + clamp[1] + unitClamp[1];
 
-			if(circle.y >= box.y + box.height)
+			if(circle.position.y >= box.position.y + box.size.y)
 			{
-				circle.yDir = 1;
+				circle.direction.y = 1;
 			}
-			else if(circle.y <= box.y)
+			else if(circle.position.y <= box.position.y)
 			{
-				circle.yDir = -1;
+				circle.direction.y = -1;
 			}
 
-			if(circle.x >= box.x + box.width)
+			if(circle.position.x >= box.position.x + box.size.x)
 			{
-				circle.xDir = 1;
+				circle.direction.x = 1;
 			}
-			else if(circle.x <= box.x)
+			else if(circle.position.x <= box.position.x)
 			{
-				circle.xDir = -1;
+				circle.direction.x = -1;
 			}
 
 			circle.collision = true;
@@ -404,15 +405,15 @@ function UpdateInGame(elapsed)
 	if(ball.released == true)
 	{
 		//update the ball position according to the elapsed time
-		ball.y += ball.yDir * ball.speed * elapsed;
-		ball.x += ball.xDir * ball.speed * elapsed;
+		ball.position.y += ball.direction.y * ball.speed * elapsed;
+		ball.position.x += ball.direction.x * ball.speed * elapsed;
 
 		//Key detection
 		//If the left key is pressed the paddle moves left.
-		if(37 in keysDown) { paddle.x -= paddle.speed * elapsed; }
+		if(37 in keysDown) { paddle.position.x -= paddle.speed * elapsed; }
 
 		//If the right key is pressed the paddle moves right.
-		if(39 in keysDown) { paddle.x += paddle.speed * elapsed; }
+		if(39 in keysDown) { paddle.position.x += paddle.speed * elapsed; }
 	}
 
 	//Key detection
@@ -426,32 +427,14 @@ function UpdateInGame(elapsed)
 		}
 	}
 
-
-	//Collision (Paddle : Window edges)
-	//Left Window side
-	if(paddle.x <=0)
-	{
-		paddle.x = 0; //Paddle is moved to the left side of the window.
-	}
-
-	//Right Window side
-	if(paddle.x + paddle.width   >= canvas.width)
-	{
-		paddle.x = canvas.width - paddle.width ; //Paddle is moved to the right side of the window.
-	}
-
-	// Collision (Paddle : Ball)
-	var yPaddleHit = "none";
-	var xPaddleHit = "none";
-	
-	Collision(paddle, ball);
+	BoxCircleCollision(paddle, ball);
 
 	for(b = 0; b < BlockGroup.Rows.length; b++)
 	{
 		//For each block in the row.
 		for(i=0; i < BlockGroup.Rows[b].length; i++)
 		{
-			if(Collision(BlockGroup.Rows[b][i], ball))
+			if(BoxCircleCollision(BlockGroup.Rows[b][i], ball))
 			{
 				Player.Score += 100 * Game.Level; // Score increases dependant on the level.
 				BlockGroup.Rows[b][i].hits -= 1;
@@ -468,56 +451,69 @@ function UpdateInGame(elapsed)
 		}
 	}
 
+	//Collision (Paddle : Window edges)
+	//Left Window side
+	if(paddle.position.x <=0)
+	{
+		paddle.position.x = 0; //Paddle is moved to the left side of the window.
+	}
+
+	//Right Window side
+	if(paddle.position.x + paddle.size.x   >= canvas.width)
+	{
+		paddle.position.x = canvas.width - paddle.size.x ; //Paddle is moved to the right side of the window.
+	}
+
 	//Collision (Ball : Window edges)
 	//Horizontal
-	if(ball.x <= 0 || ball.x >= canvas.width) 
+	if(ball.position.x <= 0 || ball.position.x >= canvas.width) 
 	{
 		//Left window side
-		if(ball.x <=0)
+		if(ball.position.x <=0)
 		{
-			ball.x = 0 + ball.radius; //Ball is moved to the left side of the screen.
+			ball.position.x = 0 + ball.radius; //Ball is moved to the left side of the screen.
 		}
 
 		//Right window side
-		if(ball.x >= canvas.width)
+		if(ball.position.x >= canvas.width)
 		{
-			ball.x = canvas.width - ball.radius; //Ball is moved to the right side of the screen.
+			ball.position.x = canvas.width - ball.radius; //Ball is moved to the right side of the screen.
 		}
 
-		ball.xDir *= -1;      //Ball's direction on the x axis is flipped.
+		ball.direction.x *= -1;      //Ball's direction on the x axis is flipped.
 		ball.collision = true;  //Collision variable is set to true.
 	}
 
 	//Vertical
-	if(ball.y <= 0 || ball.y >= canvas.height) 
+	if(ball.position.y <= 0 || ball.position.y >= canvas.height) 
 	{
 		//Top window side
-		if(ball.y <=0)
+		if(ball.position.y <=0)
 		{
-			ball.y = 0 + ball.radius; //Ball is moved to the top side of the screen.
+			ball.position.y = 0 + ball.radius; //Ball is moved to the top side of the screen.
 		}
 
 		//Bottom window side
-		if(ball.y >= canvas.height)
+		if(ball.position.y >= canvas.height)
 		{
 			//The ball's position is reset.
-			ball.x = canvas.width / 2;	
-			ball.y = canvas.height - 80;	
+			ball.position.x = canvas.width / 2;	
+			ball.position.y = canvas.height - 80;	
 
 			ball.bounces = 0;	//The amount of times the ball has bounced is reset.
 			Player.Lives -= 1;  //Player lives are decreased.
 			
 			//If the ball's direction is down
-			if (ball.yDir < 0)
+			if (ball.direction.y < 0)
 			{
-				ball.yDir *= -1; //The ball's direction in the y axis is flipped.
+				ball.direction.y *= -1; //The ball's direction in the y axis is flipped.
 			}
 			
 			ball.released = false; //The ball is set to not released.
-			paddle.x = (canvas.width / 2) - (paddle.width / 2); //Paddle's position is reset.
+			paddle.position.x = (canvas.width / 2) - (paddle.size.x / 2); //Paddle's position is reset.
 		}
 
-		ball.yDir *= -1; 	   //Ball's direction on the y axis is flipped.
+		ball.direction.y *= -1; 	   //Ball's direction on the y axis is flipped.
 		ball.collision = true; //Collision variable is set to true.
 	}
 
@@ -532,16 +528,16 @@ function UpdateInGame(elapsed)
 		BlockGroup.BlocksDestroyed = 0; //The amount of blocks destroyed is reset.
 
 		//The ball's position is reset.
-		ball.y = canvas.height - 80;
-		ball.x = canvas.width / 2;
+		ball.position.y = canvas.height - 80;
+		ball.position.x = canvas.width / 2;
 		
 		//If the ball's direction is down
-		if (ball.yDir < 0)
+		if (ball.direction.y < 0)
 		{
-			ball.yDir *= -1; //The ball's direction in the y axis is flipped.
+			ball.direction.y *= -1; //The ball's direction in the y axis is flipped.
 		}
 
-		paddle.x = (canvas.width / 2) - (paddle.width / 2); //The paddle's position is reset.
+		paddle.position.x = (canvas.width / 2) - (paddle.size.x / 2); //The paddle's position is reset.
 		ResetBlocks(); //Resets the blocks to appear.
 
 		ball.released = false; //The ball is set to not released.
@@ -554,31 +550,6 @@ function UpdateInGame(elapsed)
 		paddle.speed += 1; //The paddle speed is increased.
 		ball.collision = false; //The ball's collision is reset.
 	}
-}
-
-function render() 
-{	
-	switch(Game.Screen)
-	{
-		case Screens.StartScreen:
-			RenderStartScreen();
-			break;
-
-		case Screens.GameOver:
-			RenderGameOver();
-			break;
-
-		case Screens.LevelScreen:
-			RenderLevelScreen();
-			break;
-
-		case Screens.Game:
-			RenderInGame();
-			break;
-
-		default:
-			Game.Screen = Screens.StartScreen;
-	};
 }
 
 function update(elapsed) 
@@ -606,6 +577,31 @@ function update(elapsed)
 	};
 }
 
+function render() 
+{	
+	switch(Game.Screen)
+	{
+		case Screens.StartScreen:
+			RenderStartScreen();
+			break;
+
+		case Screens.GameOver:
+			RenderGameOver();
+			break;
+
+		case Screens.LevelScreen:
+			RenderLevelScreen();
+			break;
+
+		case Screens.Game:
+			RenderInGame();
+			break;
+
+		default:
+			Game.Screen = Screens.StartScreen;
+	};
+}
+
 var previous;
 function run(timestamp) 
 {
@@ -616,7 +612,6 @@ function run(timestamp)
 	previous = timestamp;                         //set the (globally defined) previous timestamp ready for next time
 	window.requestAnimationFrame(run);            //ask browser to call this function again, when it's ready
 }
-
 
 //trigger the game loop
 window.requestAnimationFrame(run);
