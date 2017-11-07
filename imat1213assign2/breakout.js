@@ -67,36 +67,38 @@ function ResetBlocks()
 	BlockGroup.AmountOfBlocks = 0; //Resets the amount of blocks variable.
 	
 	//Block Positions change dependant on the level.
-	if(Player.Level ==1)
+	switch(Player.Level)
 	{
-		LevelBlocks = ["========",
-					   "--------"];
-	}
-	else if(Player.Level == 2)
-	{
-		LevelBlocks = ["-=-=-=-=",
-					   "=-=-=-=-"];
-	}
-	else if(Player.Level == 3)
-	{
-		LevelBlocks = ["--====--",
-					   "==----=="];
-	}
-	else if(Player.Level == 4)
-	{
-		LevelBlocks = ["--====--",
-					   "==-==-=="];
-	}
-	else if(Player.Level == 5)
-	{
-		var LevelBlocks = ["========",
+		case 1:
+			LevelBlocks = ["========",
+					   	   "--------"];
+			break;
+
+		case 2:
+			LevelBlocks = ["-=-=-=-=",
+					       "=-=-=-=-"];
+			break;
+
+		case 3:
+			LevelBlocks = ["--====--",
+					       "==----=="];
+			break;
+
+		case 4:
+			LevelBlocks = ["--====--",
+					       "==-==-=="];
+			break;
+
+		case 5:
+			LevelBlocks = ["========",
 						   "========"];
-	}
-	else
-	{
-		var LevelBlocks = ["========",
+			break;
+
+		default:
+			LevelBlocks = ["========",
 						   "========"];
-	}
+			break;
+	};
 
 	//For the amount of rows needed.
 	for(b = 0; b < LevelBlocks.length; b++)
