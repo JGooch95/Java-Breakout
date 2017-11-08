@@ -37,7 +37,7 @@ var BlockGroup = {
 
 var ball = {
 	position: new vec2f(canvas.width / 2, canvas.height - 80),
-	direction: new vec2f(1,1),
+	direction: new vec2f(0,1),
 	speed: 200,   		 //Speed in the x direction in pixels per second
 	radius: 10,            //Radius of the ball in pixels
 	released: false,		 //Determines whether the ball has started moving.
@@ -54,7 +54,6 @@ function block(x, y, width, height, hits)
 {
 	this.position = new vec2f(x,y),
 	this.size = new vec2f(width, height),
-	this.colour = "white",  //Colour of the block
 	this.hits = hits	   //The amount of hits until the block is destroyed.
 }
 
@@ -114,19 +113,22 @@ function ResetBlocks()
 		//For each block in a row.
 		for(i = 0; i < LevelBlocks[b].length; ++i)
 		{
-			//Single hit blocks
-			if(LevelBlocks[b][i] == "-")
+			var valid = false;
+			switch(LevelBlocks[b][i])
 			{
-				var NewBlock = new block((i*(BlockWidth + XGap)) + X, (b* (BlockHeight + YGap)) + Y, BlockWidth, BlockHeight, 1); //Make a new instance of the block.
-				Row.push(NewBlock); //Add the block to the current row array
-				BlockGroup.AmountOfBlocks += 1; //Amount of blocks is incremented.
+				case "-": //Single hit blocks
+					Row.push(new block((i*(BlockWidth + XGap)) + X, (b* (BlockHeight + YGap)) + Y, BlockWidth, BlockHeight, 1)); //Add the block to the array
+					valid = true;
+					break;
+
+				case "=": //Multi hit blocks
+					Row.push(new block((i*(BlockWidth + XGap)) + X, (b* (BlockHeight + YGap)) + Y, BlockWidth, BlockHeight, 2)); //Add the block to the array
+					valid = true;
+					break;
 			}
-			
-			//Double hit blocks
-			else if(LevelBlocks[b][i] == "=")
+
+			if(valid)
 			{
-				var NewBlock = new block((i*(BlockWidth + XGap)) + X, (b* (BlockHeight + YGap)) + Y, BlockWidth, BlockHeight, 2); //Make a new instance of the block.
-				Row.push(NewBlock); //Add the block to the current row array
 				BlockGroup.AmountOfBlocks += 1; //Amount of blocks is incremented.
 			}
 		}
@@ -135,15 +137,13 @@ function ResetBlocks()
 }
 
 function RenderStartScreen()
-{
-	var Start_txt = ""; //Holds the text for the Start screen.
-		
+{		
 	//Sets the font to arial and the colour to white.
 	ctx.fillStyle = "white";
 	ctx.font="50px Arial";
 
 	ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear the canvas
-		
+
 	//Draws the breakout title to the screen.
 	var Start_txt = "Breakout";
 	ctx.fillText(Start_txt, (canvas.width / 2) - (ctx.measureText(Start_txt).width / 2) ,canvas.height / 2 - 100);
@@ -154,15 +154,13 @@ function RenderStartScreen()
 }
 
 function RenderGameOver()
-{
-	var GameOver_txt = ""; //Holds the text for the Game over screen.
-		
+{		
 	//Sets the font to arial and the colour to white.
 	ctx.fillStyle = "white";
 	ctx.font="50px Arial";
 
 	ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear the canvas
-	
+
 	//Draws the Game Over text to the screen.
 	var GameOver_txt = "Game Over";
 	ctx.fillText(GameOver_txt, (canvas.width / 2) - (ctx.measureText(GameOver_txt).width / 2) ,canvas.height / 2 - 100);
@@ -177,9 +175,7 @@ function RenderGameOver()
 }
 
 function RenderLevelScreen()
-{
-	var Level_txt = ""; //Holds the text for the Level screen.
-		
+{		
 	//Sets the font to arial and the colour to white.
 	ctx.fillStyle = "white";
 	ctx.font="50px Arial";
@@ -187,7 +183,7 @@ function RenderLevelScreen()
 	ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear the canvas
 	
 	//Draws the Level to the screen.
-	Level_txt = "Level: " + Game.Level;
+	var Level_txt = "Level: " + Game.Level;
 	ctx.fillText(Level_txt, (canvas.width / 2) - (ctx.measureText(Level_txt).width / 2) ,canvas.height / 2);
 }
 
@@ -220,19 +216,16 @@ function RenderInGame()
 		//For each block in the row.
 		for(i=0; i < BlockGroup.Rows[b].length; ++i)
 		{
-			//1 hit blocks are red.
-			if(BlockGroup.Rows[b][i].hits == 1)
+			//Block colour changes dependant on number of hits
+			switch(BlockGroup.Rows[b][i].hits)
 			{
-				BlockGroup.Rows[b][i].colour = "red";
+				case 1:
+					ctx.fillStyle = "red";
+					break;
+				case 2:
+					ctx.fillStyle = "green";
+					break;
 			}
-			
-			//2 hit blocks are green.
-			else if(BlockGroup.Rows[b][i].hits == 2)
-			{
-				BlockGroup.Rows[b][i].colour = "green";
-			}
-			//Block colour
-			ctx.fillStyle = BlockGroup.Rows[b][i].colour;
 			
 			ctx.beginPath();
 			ctx.fillRect(BlockGroup.Rows[b][i].position.x, BlockGroup.Rows[b][i].position.y, BlockGroup.Rows[b][i].size.x, BlockGroup.Rows[b][i].size.y);
@@ -275,7 +268,6 @@ function UpdateStartScreen()
 	//If the enter key is pressed.
 	if(13 in keysDown) 
 	{
-		//Game.StartScreen = false; //The start screen is disabled.
 		BlockGroup.BlocksDestroyed = 0; //Blocks destroyed are reset.
 		Player.Lives = 3; //Lives are reset
 		Player.Score = 0; //Score is reset
@@ -285,7 +277,6 @@ function UpdateStartScreen()
 		ResetBlocks(); //The blocks are reset.
 		delete keysDown[13]; //Removes the enter key from the stack.
 		Game.Screen = Screens.LevelScreen;
-		//Game.LevelScreen = true; //The Level screen is enabled.
 	}
 }
 
@@ -294,8 +285,6 @@ function UpdateGameOver()
 	//If the enter key is pressed.
 	if(13 in keysDown)
 	{
-		//Game.GameOver = false; //The Game Over screen is disabled.
-		//Game.StartScreen = true; //The start screen is enabled.
 		Game.Screen = Screens.StartScreen;
 		delete keysDown[13]; //Removes the enter key from the stack.
 	}
@@ -308,14 +297,7 @@ function UpdateLevelScreen()
 
 function Magnitude(vector)
 {
-	var mag = 0;
-	for(var i = 0; i < vector.length; ++i)
-	{
-		mag += Math.pow(vector[i],2);
-	}
-
-	return(Math.sqrt(mag));
-
+	return(Math.sqrt(Math.pow(vector.x,2) + Math.pow(vector.y,2)));
 }
 
 function BoxCircleCollision(box, circle)
@@ -327,31 +309,30 @@ function BoxCircleCollision(box, circle)
 	   circle.position.y - circle.radius <= box.position.y + box.size.y)
 	{
 		//Difference between 2 centers
-		var diff = [ circle.position.x - (box.position.x + box.size.x/2) ,  circle.position.y - (box.position.y + box.size.y/2)];
-		var clamp = [0,0];
-		var flip = [0,0];
+		var diff = new vec2f(circle.position.x - (box.position.x + box.size.x/2) ,  circle.position.y - (box.position.y + box.size.y/2));
+		var clamp = new vec2f(0,0);
 
 		//If the clamps the location of the circle to the rect
-		if(diff[0] >= 0)
+		if(diff.x >= 0)
 		{
-			clamp[0] = Math.min(diff[0], (box.size.x/2));
+			clamp.x = Math.min(diff.x, (box.size.x/2));
 		}
 		else
 		{
-			clamp[0] = Math.max(diff[0], -(box.size.x/2));
+			clamp.x = Math.max(diff.x, -(box.size.x/2));
 		}
 
-		if(diff[1] >= 0)
+		if(diff.y >= 0)
 		{
-			clamp[1] = Math.min(diff[1], (box.size.y/2));
+			clamp.y = Math.min(diff.y, (box.size.y/2));
 		}
 		else
 		{
-			clamp[1] = Math.max(diff[1], -(box.size.y/2));
+			clamp.y = Math.max(diff.y, -(box.size.y/2));
 		}
 
 		//Caclulates the distance between the objects
-		var dist = [diff[0] - clamp[0], diff[1] - clamp[1]];
+		var dist = new vec2f(diff.x - clamp.x, diff.y - clamp.y);
 
 		var difference = Magnitude(dist) - circle.radius;
 
@@ -359,26 +340,30 @@ function BoxCircleCollision(box, circle)
 		if(difference <= 0)
 		{
 			//Position the circle
-			var unitClamp = [clamp[0]/ Magnitude(clamp), clamp[1]/ Magnitude(clamp)]
-			unitClamp[0] *= circle.radius;
-			unitClamp[1] *= circle.radius;
+			var unitClamp = new vec2f(clamp.x/ Magnitude(clamp), clamp.y/ Magnitude(clamp));
+			unitClamp.x *= circle.radius;
+			unitClamp.y *= circle.radius;
 
-			circle.position.x = box.position.x + (box.size.x/2) + clamp[0] + unitClamp[0];
-			circle.position.y = box.position.y + (box.size.y/2) + clamp[1] + unitClamp[1];
+			circle.position.x = box.position.x + (box.size.x/2) + clamp.x + unitClamp.x;
+			circle.position.y = box.position.y + (box.size.y/2) + clamp.y + unitClamp.y;
 
+			//If hitting top side
 			if(circle.position.y >= box.position.y + box.size.y)
 			{
 				circle.direction.y = 1;
 			}
+			//If hitting bottom side
 			else if(circle.position.y <= box.position.y)
 			{
 				circle.direction.y = -1;
 			}
 
+			//If hitting right side
 			if(circle.position.x >= box.position.x + box.size.x)
 			{
 				circle.direction.x = 1;
 			}
+			//If hitting left side
 			else if(circle.position.x <= box.position.x)
 			{
 				circle.direction.x = -1;
@@ -427,7 +412,24 @@ function UpdateInGame(elapsed)
 		}
 	}
 
-	BoxCircleCollision(paddle, ball);
+	if(BoxCircleCollision(paddle, ball))
+	{
+		//If heading directly downwards
+		if( ball.direction.x == 0 && ball.direction.y == -1)
+		{
+			//Randomise a direction to head towards
+			var randomDir = (Math.random() * 2) - 1;
+			if(randomDir <= 0)
+			{
+				ball.direction.x = -1;
+			}
+			else
+			{
+				ball.direction.x = 1;
+			}
+
+		}
+	}
 
 	for(b = 0; b < BlockGroup.Rows.length; ++b)
 	{
@@ -503,7 +505,7 @@ function UpdateInGame(elapsed)
 			ball.bounces = 0;	//The amount of times the ball has bounced is reset.
 			Player.Lives -= 1;  //Player lives are decreased.
 			
-			//If the ball's direction is down
+			//If the ball's direction is up
 			if (ball.direction.y < 0)
 			{
 				ball.direction.y *= -1; //The ball's direction in the y axis is flipped.
