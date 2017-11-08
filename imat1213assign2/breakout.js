@@ -41,7 +41,6 @@ var ball = {
 	speed: 200,   		 //Speed in the x direction in pixels per second
 	radius: 10,            //Radius of the ball in pixels
 	released: false,		 //Determines whether the ball has started moving.
-	collision: false		 //Determines whether the ball has collided.
 }
 
 var paddle = {
@@ -188,9 +187,7 @@ function RenderLevelScreen()
 }
 
 function RenderInGame()
-{
-	var HUD_txt = ""; //Holds the text for the HUD.
-		
+{	
 	//Clear the canvas
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -239,7 +236,7 @@ function RenderInGame()
 	ctx.font="20px Arial";
 
 	//Lives
-	HUD_txt = "Lives: " + Player.Lives;
+	var HUD_txt = "Lives: " + Player.Lives;
 	ctx.fillText(HUD_txt,10 ,canvas.height - 10);
 
 	//Score
@@ -369,8 +366,6 @@ function BoxCircleCollision(box, circle)
 				circle.direction.x = -1;
 			}
 
-			circle.collision = true;
-
 			return true;
 		}
 	}
@@ -427,8 +422,9 @@ function UpdateInGame(elapsed)
 			{
 				ball.direction.x = 1;
 			}
-
 		}
+		ball.speed += 1; //Ball's speed is increased
+		paddle.speed += 1; //The paddle speed is increased.
 	}
 
 	for(b = 0; b < BlockGroup.Rows.length; ++b)
@@ -447,8 +443,6 @@ function UpdateInGame(elapsed)
 					BlockGroup.Rows[b].splice(i,1); 	// The block is removed from the list of blocks.
 					BlockGroup.BlocksDestroyed += 1; 	// The blocks destroyed is increased by 1.
 				}
-						
-				ball.collision = true; 				// The collision variable is set to true
 			}
 		}
 	}
@@ -483,7 +477,6 @@ function UpdateInGame(elapsed)
 		}
 
 		ball.direction.x *= -1;      //Ball's direction on the x axis is flipped.
-		ball.collision = true;  //Collision variable is set to true.
 	}
 
 	//Vertical
@@ -516,7 +509,6 @@ function UpdateInGame(elapsed)
 		}
 
 		ball.direction.y *= -1; 	   //Ball's direction on the y axis is flipped.
-		ball.collision = true; //Collision variable is set to true.
 	}
 
 	
@@ -543,14 +535,6 @@ function UpdateInGame(elapsed)
 		ResetBlocks(); //Resets the blocks to appear.
 
 		ball.released = false; //The ball is set to not released.
-	}
-
-	//If the ball has collided.
-	if(ball.collision == true)
-	{
-		ball.speed += 1; //Ball's speed is increased
-		paddle.speed += 1; //The paddle speed is increased.
-		ball.collision = false; //The ball's collision is reset.
 	}
 }
 
